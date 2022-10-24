@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.sql.*;
 
 /**
  * Se encarga de guardar la información de los componentes a la base de datos.
@@ -17,12 +18,16 @@ import java.util.List;
  */
 public class DatabaseService extends Service implements Runnable {
 
+    public Connection data_base;
+
     public String absolute_path; // path to /data folder
     public String[] components;
-    public String date_dir; // path to /data/{date} folder
+    public String date; // path to /data/{date} folder
 
     public DatabaseService(List<AppComponent> lac, String out_dir) {
         super();
+        
+        try (Connection data_base = DriverManager.getConnection("jdbc:mariadb://localhost/", "root", null)){}
 
         // absolute_path = System.getProperty("user.dir") + out_dir + "/data";
         absolute_path = out_dir + "/data";
@@ -31,10 +36,10 @@ public class DatabaseService extends Service implements Runnable {
         Date date = new Date();
 
 
-        date_dir = absolute_path + "/" + formatter.format(date);
+        date = formatter.format(date);
 
         // creates a file object with specified path
-        new File(date_dir).mkdirs();
+        //new File(date_dir).mkdirs();
 
         /*
         iniciar los .csv de todos los componentes o esperar a que llamen initDataLog
@@ -80,18 +85,16 @@ public class DatabaseService extends Service implements Runnable {
      * @throws IOException
      */
     public void initDataLog(String[] values, String ID) throws IOException { //ver cuando llamar a initDataLog
-        String fileName = date_dir + "/" + ID + ".csv"; // el filename sera el mismo id?;
-        FileWriter fileWriter = new FileWriter(fileName, true); // append = true
-        PrintWriter printWriter = new PrintWriter(fileWriter);
-
-        printWriter.print("TIMESTAMP;");
+        Statement stmt = data_base.createStatement();
+        String command = "CREATE TABLE " + date + ID + ".csv"; // el filename sera el mismo id?;
+        String tags_definition = "(id primary key, TIMESTAMP datetime,";
 
         for (int i = 0; i < values.length - 1; i++) {
-            printWriter.printf("%s;", values[i]);
+            tags_definition = tags_definition + values[i] + " double,";
         }
-        printWriter.printf("%s\n", values[values.length - 1]);
+        tags_definition = tags_definition + values[values.length - 1] + " double)";
+        stmt.execute(command + tags_definition);
 
-        printWriter.close();
     }
 
     /**
