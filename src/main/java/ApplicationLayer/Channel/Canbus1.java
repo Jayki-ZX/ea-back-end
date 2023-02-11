@@ -12,7 +12,7 @@ import java.util.List;
  Clase que representa el canal que guarda los datos en el bms.
  */
 public class Canbus1 extends Channel {
-    private final int[] data = new int[8]; // Memory efficient buffer
+    private int[] data = new int[8]; // Memory efficient buffer
 
     private AppComponent bms;
     private final int lenBMS = 391; // Hardcoded, specific, actual values updated in this implementation for this Component
