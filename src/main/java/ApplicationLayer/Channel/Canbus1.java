@@ -74,7 +74,7 @@ public class Canbus1 extends Channel {
     public void singleRead() {
         long maxDelay = 1000;
         ProcessBuilder processBuilder = new ProcessBuilder();
-        processBuilder.command("candump", "can1", "-T", "900");
+        processBuilder.command("candump", "vcan1", "-T", "900");
         try {
             Process process = processBuilder.start();
             BufferedReader reader = new BufferedReader(
@@ -111,7 +111,7 @@ public class Canbus1 extends Channel {
     
         //stringBuilder.append("cd ./src/main/java/ApplicationLayer/SensorReading/CANReaders/linux-can-utils;");
         //stringBuilder.append("gcc candump.c lib.c -o candump;"); // Comment this on second execution, no need to recompile
-        processBuilder.command("sudo", "/sbin/ip", "link" , "set", "can1", "up", "type", "can", "bitrate", "500000");
+        processBuilder.command("sudo", "/sbin/ip", "link" , "set", "vcan1", "up", "type", "can", "bitrate", "500000");
         try {
             processBuilder.start();
         } catch (IOException e) {

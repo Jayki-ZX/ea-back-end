@@ -15,13 +15,18 @@ import java.util.concurrent.LinkedBlockingDeque;
  */
 public abstract class Service implements Runnable{
     BlockingQueue<AppComponent> componentsToBeChecked; // Cola de AppComponents
-
+    public List<AppComponent> components;
+    public String id = "Service";
     /**
      * Constructor de objetos default
      */
     public Service(){
         this.componentsToBeChecked = new LinkedBlockingDeque<>();
     }
+
+    public Service(List<AppComponent> components) {
+        this.components = components;
+    } 
 
     /**
      * Puts a list of AppComponents un the list
@@ -63,6 +68,14 @@ public abstract class Service implements Runnable{
      * @param c AppComponent a consumir
      */
     protected abstract void serve(AppComponent c);
+
+
+    public void consumeComponents() {
+        for(AppComponent c : components) {
+            System.out.println(c.getID());
+            serve(c);
+        }
+    }
 
     /**
      * Debe sacar los componentes pendientes de su lista, si esta vacía no entra

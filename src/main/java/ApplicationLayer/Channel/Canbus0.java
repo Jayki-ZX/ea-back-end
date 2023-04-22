@@ -12,10 +12,8 @@ import java.util.List;
 public class Canbus0 extends Channel {
     private int[] data = new int[8]; // Memory efficient buffer
 
-    private AppComponent sevcon_izq;
-    private AppComponent sevcon_der;
-    private AppComponent lcd;
-    private final int lenSevcon = 16; // Hardcoded, specific, actual values updated in this implementation for this Component
+    private AppComponent kellyIzq;
+    private AppComponent kellyDer;
     private boolean dev = false;
     /**
      * Each channel has predefined AppComponents
@@ -27,33 +25,15 @@ public class Canbus0 extends Channel {
         super(myComponentList, myServices);
         this.dev = dev;
         this.id = "Canbus0";
-        // Check that a BMS AppComponent was supplied
-        // With the exact amount of double[] values as the implementation here
+    
         for(AppComponent ac : myComponentList) {
-            if(ac.getID().equals("sevcon_izq")) {
-                sevcon_izq = ac;
+            if(ac.getID().equals("kellyIzq")) {
+                kellyIzq = ac;
             }
-            else if(ac.getID().equals("sevcon_der")) {
-                sevcon_der = ac;
-            }
-            else if(ac.getID().equals("lcd")) {
-                lcd = ac;
+            else if(ac.getID().equals("kellyDer")) {
+                kellyDer = ac;
             }
         }
-        // try{
-        //     this.sevcon = this.myComponentsMap.get("sevcon"); // Must match name in .xlsx file
-        //     if(sevcon != null){
-        //         int len = sevcon.len;
-        //         if(len != this.lenSevcon){
-        //             throw new Exception("Cantidad de valores del SEVCON en AppComponent != Cantidad de valores de lectura implementados");
-        //         }
-        //     }else{
-        //         throw new Exception("A Sevcon AppComponent was not supplied in Canbus1 channel");
-        //     }
-        // }catch(Exception e){
-        //     e.printStackTrace();
-        // }
-        //this.lcd = this.myComponentsMap.get("lcd");
     }
 
     @Override
@@ -63,10 +43,11 @@ public class Canbus0 extends Channel {
      */
     @Override
     public void singleRead() {
-        Thread req = new Thread(new KellyRequest("can0", "0C8"));
+        Thread reqIzq = new Thread(new KellyRequest("vcan0", "064"));
+        Thread reqDer = new Thread(new KellyRequest("vcan0", "0C8"));
         //
         long maxDelay = 1500;
-        String[] command = {"candump", "can0,0cd:7FF", "-T 900"};
+        String[] command = {"candump", "vcan0,0cd:7FF,069:7FF", "-T 900"};
         // Init sphere.py
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         try {
@@ -74,7 +55,10 @@ public class Canbus0 extends Channel {
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream())
                     );
-            req.start();
+            reqIzq.start();
+            reqIzq.join();
+            reqDer.start();
+            reqDer.join();
             String line;
             int msg = 0;
             long initialTime = System.currentTimeMillis();
@@ -92,7 +76,7 @@ public class Canbus0 extends Channel {
                     System.out.println(line);
                     parseMessage(line, msg);
                     msg++;
-                    msg = msg % 4;
+                    msg = msg % 8;
                 }
             }
         }catch (Exception e) {
@@ -111,7 +95,7 @@ public class Canbus0 extends Channel {
         // (9600 es el baud rate)
         //stringBuilder.append("cd ./src/main/java/ApplicationLayer/SensorReading/CANReaders/linux-can-utils;");
         //stringBuilder.append("gcc candump.c lib.c -o candump;"); // Comment this on second execution, no need to recompile
-        processBuilder.command("sudo", "/sbin/ip", "link" , "set", "can0", "up", "type", "can", "bitrate", "1000000");
+        processBuilder.command("sudo", "/sbin/ip", "link" , "set", "vcan0", "up", "type", "can", "bitrate", "1000000");
         try {
             processBuilder.start();
         } catch (IOException e) {
@@ -133,20 +117,94 @@ public class Canbus0 extends Channel {
     public void parseMessage(String message, int msgNumber) {
         //String[] msg = Utils.split(message, " "); // Better performance split than String.split()
         String[] msg = message.split("\\s+"); // etter performance split than String.split()
-        if(msg[0].length() < 1) return;
+
+        // Parse HEX strings to byte data type, into local buffer
+        int L = Character.getNumericValue(msg[3].charAt(1));
+        for(int i=0 ; i<L; i++){ //asume mensaje can de 8 bytes fijo, todo: hacer mas flexible en el futuro.
+            // atento a esto en la prueba, puede estar alrevez
+            data[i] = Integer.parseInt(msg[4+i], 16);
+        }
 
         switch (msgNumber){
             case 0:
-                System.out.println("Mensaje 0 kelly");
+                // Kelly izq CCP_A2D_BATCH_READ1
+                System.out.println("Kelly izq CCP_A2D_BATCH_READ1");
+                kellyIzq.valoresRealesActuales[0] = data[0]; // Brake A/D
+                kellyIzq.valoresRealesActuales[1] = data[1]; // TPS A/D
+                kellyIzq.valoresRealesActuales[2] = data[2]; // Operation voltage A/D
+                kellyIzq.valoresRealesActuales[3] = data[3]; // Vs A/D
+                kellyIzq.valoresRealesActuales[4] = data[4]; // B+ A/D
                 break;
             case 1:
-                System.out.println("Mensaje 1 kelly");
+                // Kelly izq CCP_A2D_BATCH_READ2
+                System.out.println("Kelly izq CCP_A2D_BATCH_READ2");
+                kellyIzq.valoresRealesActuales[5] = data[0];  // Ia A/D
+                kellyIzq.valoresRealesActuales[6] = data[1];  // Ib A/D
+                kellyIzq.valoresRealesActuales[7] = data[2];  // Ic A/D
+                kellyIzq.valoresRealesActuales[8] = data[3];  // Va A/D
+                kellyIzq.valoresRealesActuales[9] = data[4];  // Vb A/D
+                kellyIzq.valoresRealesActuales[10] = data[5]; // Vc A/D
                 break;
             case 2:
-                System.out.println("Mensaje 2 kelly");
+                // Kelly izq CCP_MONITOR1
+                System.out.println("Kelly izq CCP_MONITOR1");
+                kellyIzq.valoresRealesActuales[11] = data[0]; // PWM
+                kellyIzq.valoresRealesActuales[12] = data[1]; // enable motor rotation
+                kellyIzq.valoresRealesActuales[13] = data[2]; // motor temperature
+                kellyIzq.valoresRealesActuales[14] = data[3]; // Controller's temperature
+                kellyIzq.valoresRealesActuales[15] = data[4]; // temperature of high side FETMOS heat sink
+                kellyIzq.valoresRealesActuales[16] = data[5]; // temperature of low side FETMOS heat sink
                 break;
             case 3:
-                System.out.println("Mensaje 3 kelly");
+                // Kelly izq CCP_MONITOR2
+                System.out.println("Kelly izq CCP_MONITOR2");
+                // RPM: data[0] -> MSB of mechanical speed in RPM,      
+                //      data[1] -> LSB of mechanical speed in RPM
+                kellyIzq.valoresRealesActuales[17] = (data[0] << 8) | data[1];
+                kellyIzq.valoresRealesActuales[18] = data[2]; // present current accounts for percent of the rated current of controller
+                // Error code: data[3] -> MSB of error code,      
+                //             data[4] -> LSB of error code
+                kellyIzq.valoresRealesActuales[19] = (data[3] << 8) | data[4];
+                break;
+            case 4:
+                // Kelly der CCP_A2D_BATCH_READ1
+                System.out.println("Kelly der CCP_A2D_BATCH_READ1");
+                kellyDer.valoresRealesActuales[0] = data[0]; // Brake A/D
+                kellyDer.valoresRealesActuales[1] = data[1]; // TPS A/D
+                kellyDer.valoresRealesActuales[2] = data[2]; // Operation voltage A/D
+                kellyDer.valoresRealesActuales[3] = data[3]; // Vs A/D
+                kellyDer.valoresRealesActuales[4] = data[4]; // B+ A/D
+                break;
+            case 5:
+                // Kelly der CCP_A2D_BATCH_READ2
+                System.out.println("Kelly der CCP_A2D_BATCH_READ2");
+                kellyDer.valoresRealesActuales[5] = data[0];  // Ia A/D
+                kellyDer.valoresRealesActuales[6] = data[1];  // Ib A/D
+                kellyDer.valoresRealesActuales[7] = data[2];  // Ic A/D
+                kellyDer.valoresRealesActuales[8] = data[3];  // Va A/D
+                kellyDer.valoresRealesActuales[9] = data[4];  // Vb A/D
+                kellyDer.valoresRealesActuales[10] = data[5]; // Vc A/D
+                break;
+            case 6:
+                // Kelly der CCP_MONITOR1
+                System.out.println("Kelly der CCP_MONITOR1");
+                kellyDer.valoresRealesActuales[11] = data[0]; // PWM
+                kellyDer.valoresRealesActuales[12] = data[1]; // enable motor rotation
+                kellyDer.valoresRealesActuales[13] = data[2]; // motor temperature
+                kellyDer.valoresRealesActuales[14] = data[3]; // Controller's temperature
+                kellyDer.valoresRealesActuales[15] = data[4]; // temperature of high side FETMOS heat sink
+                kellyDer.valoresRealesActuales[16] = data[5]; // temperature of low side FETMOS heat sink
+                break;
+            case 7:
+                // Kelly der CCP_MONITOR2
+                System.out.println("Kelly der CCP_MONITOR2");
+                // RPM: data[0] -> MSB of mechanical speed in RPM,      
+                //      data[1] -> LSB of mechanical speed in RPM
+                kellyDer.valoresRealesActuales[17] = (data[0] << 8) | data[1];
+                kellyDer.valoresRealesActuales[18] = data[2]; // present current accounts for percent of the rated current of controller
+                // Error code: data[3] -> MSB of error code,      
+                //             data[4] -> LSB of error code
+                kellyDer.valoresRealesActuales[19] = (data[3] << 8) | data[4];
                 break;
             default:
                 System.out.println("Trama "+msg[0]+" no procesada");

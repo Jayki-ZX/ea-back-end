@@ -12,6 +12,7 @@ import ApplicationLayer.Channel.Canbus1;
 import ApplicationLayer.Channel.CanbusKelly;
 import ApplicationLayer.Channel.Channel;
 import ApplicationLayer.Channel.ChannelRunner;
+import ApplicationLayer.Channel.ServiceRunner;
 import ApplicationLayer.Channel.SphereChannel;
 import ApplicationLayer.LocalServices.DatabaseService;
 import ApplicationLayer.LocalServices.Service;
@@ -19,13 +20,15 @@ import ApplicationLayer.LocalServices.WebSocketService;
 import ApplicationLayer.LocalServices.WirelessService.WirelessSender;
 
 public class MainRefactor {
-    
+
     public static void main(String[] args) throws Exception {
         boolean dev = false;
         boolean encrypt = false;
         String xbeePort = "/dev/ttyUSB0";
-        String componentsPath = "/home/pi/Desktop/components/auriga/";
-        String databasePath = "/home/pi/Desktop/";
+        // String componentsPath = "/home/pi/Desktop/components/auriga/";
+        String componentsPath = "/home/jayki/Desktop/eolian/components/";
+        // String databasePath = "/home/pi/Desktop/";
+        String databasePath = "/home/jayki/Desktop/eolian/data/";
         for(int i = 0; i < args.length; i++) {
             try {
                 if(args[i].equals("--dev")) {
@@ -61,44 +64,49 @@ public class MainRefactor {
         System.out.println("Java VM           :  " + SystemInfo.getJavaVirtualMachine());
         System.out.println("Java Runtime      :  " + SystemInfo.getJavaRuntime());
         System.out.println("Main Sender");
-        
+
         // Components
-        List<AppComponent> lac = CSVToAppComponent.CSVs_to_AppComponents(componentsPath);
-        
+        List<AppComponent> components = CSVToAppComponent.CSVs_to_AppComponents(componentsPath);
+
         // Services
-        List<Service> ls = new ArrayList<>();
-        WirelessSender ws = new WirelessSender(lac, xbeePort, encrypt);
+        List<Service> services = new ArrayList<>();
+        //WirelessSender ws = new WirelessSender(components, xbeePort, encrypt);
         //PrintService ps = new PrintService("TX: ");
-        WebSocketService wss = new WebSocketService();
-        DatabaseService dbs = new DatabaseService(lac, databasePath);
+        WebSocketService wss = new WebSocketService(components);
+        DatabaseService dbs = new DatabaseService(components, databasePath);
 
-        ls.add(ws);
+        //services.add(ws);
         //ls.add(ps);
-        ls.add(wss);
-        ls.add(dbs);
-        List<Channel> chs = new ArrayList<>();
-        // Channels
-        Canbus1 can1 = new Canbus1(lac, ls, dev);
-        Canbus0 can0 = new Canbus0(lac, ls, dev);
-        chs.add(can1);
-        chs.add(can0);
+        services.add(wss);
+        services.add(dbs);
 
-        ChannelRunner cr = new ChannelRunner(chs, 1000);
-        cr.run();
+        List<Channel> channels = new ArrayList<>();
+        // Channels
+        Canbus1 can1 = new Canbus1(components, services, dev);
+        Canbus0 can0 = new Canbus0(components, services, dev);
+        channels.add(can1);
+        channels.add(can0);
+
+        ChannelRunner cr = new ChannelRunner(channels, 1000);
+        Thread channelsThread = new Thread(cr);
+        channelsThread.start();
+
+        ServiceRunner sr = new ServiceRunner(services, 1000);
+        sr.run();
         // //Canbus0 can0 = new Canbus0(lac, ls, dev);
         // // Main loops
         // Thread t1 = new Thread(can1);
-        // Thread t5 = new Thread(can0);
-        // //Thread t2 = new Thread(ps);
-        Thread t3 = new Thread(ws); 
-        Thread t4 = new Thread(wss);
-        Thread t9 = new Thread(dbs);
-        // t1.start();
-        // t5.start();
-        // //t7.start();
-        // //t2.start();
-        t3.start();
-        t4.start(); 
-        t9.start();
+        // // Thread t5 = new Thread(can0);
+        // // //Thread t2 = new Thread(ps);
+        // Thread t3 = new Thread(ws);
+        // Thread t4 = new Thread(wss);
+        // Thread t9 = new Thread(dbs);
+        // // t1.start();
+        // // t5.start();
+        // // //t7.start();
+        // // //t2.start();
+        // t3.start();
+        // t4.start();
+        // t9.start();
     }
 }
