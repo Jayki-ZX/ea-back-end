@@ -11,7 +11,7 @@ public abstract class Channel implements Runnable {
     public HashMap<String, AppComponent> myComponentsMap; // To modify values with cost O(1) inside readingLoop()
     public List<AppComponent> myComponentList ; // List that Services will receive
     protected final List<Service> myServices; // List of services that need to know about myComponents updates
-
+    public String id = "null";
     /**
      * Each channel has predefined AppComponents
      * @param myComponentList List of AppComponent that this Channel update values to
@@ -84,4 +84,9 @@ public abstract class Channel implements Runnable {
             e.printStackTrace();
         }
     }
+
+    /*
+     * Lee 1 corrida de datos.
+     */
+    public void singleRead() {}
 }

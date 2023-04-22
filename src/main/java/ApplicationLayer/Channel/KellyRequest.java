@@ -2,11 +2,17 @@ package ApplicationLayer.Channel;
 
 public class KellyRequest implements Runnable {
 
+    public String channel;
+    public String kellyId;
+
+    public KellyRequest(String channel, String kellyId) {
+        this.channel = channel;
+        this.kellyId = kellyId;
+    }
+
     public void run() {
         // init process builder
         // start 4 commands to ask for data
-        String channel = "vcan0";
-        String kellyId = "101";
 
         // launch command CCP_A2D_BATCH_READ1
         ProcessBuilder CCP_A2D_BATCH_READ1 = new ProcessBuilder("cansend", channel, (kellyId + "#1B"));
