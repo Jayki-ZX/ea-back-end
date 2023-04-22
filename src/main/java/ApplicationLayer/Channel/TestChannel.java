@@ -41,6 +41,16 @@ public class TestChannel extends Channel{
         }
     }
 
+    @Override
+    public void singleRead() {
+        for (AppComponent a : myComponentList) {
+            // Update values directly. Without the call of updateValues() inside AppComponent
+            for (int i = 0; i < a.len; i++) {
+                a.valoresRealesActuales[i] = a.minimosConDecimal[i] + (a.maximosConDecimal[i] - a.minimosConDecimal[i]) * this.r.nextDouble(); // Random value in adequate range
+            }
+        }
+    }
+
     /**
      * Updates a local double[] based on min/max values from AppComponent.
      * Then updates the double[] inside the AppComponent.

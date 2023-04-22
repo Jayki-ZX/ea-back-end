@@ -84,7 +84,7 @@ public class WebSocketService extends Service{
                 server.getBroadcastOperations().sendEvent(c.getID(), c.valoresRealesActuales); // Enviar evento a WebSocket del componente específico
                 //System.out.println("Bradcast de: " + c.getID());
             }
-            Thread.sleep(10);
+            Thread.sleep(100);
         }catch (Exception e){
             e.printStackTrace(); // Sólo se hace print, el sistema no se puede caer
         }

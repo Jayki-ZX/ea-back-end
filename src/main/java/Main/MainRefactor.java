@@ -14,6 +14,7 @@ import ApplicationLayer.Channel.Channel;
 import ApplicationLayer.Channel.ChannelRunner;
 import ApplicationLayer.Channel.ServiceRunner;
 import ApplicationLayer.Channel.SphereChannel;
+import ApplicationLayer.Channel.TestChannel;
 import ApplicationLayer.LocalServices.DatabaseService;
 import ApplicationLayer.LocalServices.Service;
 import ApplicationLayer.LocalServices.WebSocketService;
@@ -73,24 +74,26 @@ public class MainRefactor {
         //WirelessSender ws = new WirelessSender(components, xbeePort, encrypt);
         //PrintService ps = new PrintService("TX: ");
         WebSocketService wss = new WebSocketService(components);
-        DatabaseService dbs = new DatabaseService(components, databasePath);
+        //DatabaseService dbs = new DatabaseService(components, databasePath);
 
         //services.add(ws);
         //ls.add(ps);
         services.add(wss);
-        services.add(dbs);
+        //services.add(dbs);
 
         List<Channel> channels = new ArrayList<>();
         // Channels
         Canbus1 can1 = new Canbus1(components, services, dev);
         Canbus0 can0 = new Canbus0(components, services, dev);
-        channels.add(can1);
-        channels.add(can0);
+        TestChannel tc = new TestChannel(components, services);
+        //channels.add(can1);
+        //channels.add(can0);
+        channels.add(tc);
 
         ChannelRunner cr = new ChannelRunner(channels, 1000);
         Thread channelsThread = new Thread(cr);
         channelsThread.start();
-
+        
         ServiceRunner sr = new ServiceRunner(services, 1000);
         sr.run();
         // //Canbus0 can0 = new Canbus0(lac, ls, dev);
